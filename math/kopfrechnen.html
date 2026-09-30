@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<!-- Stand: 2026-10-01 · Änderung 8 -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kopfrechnen</title>
+<style>
+:root{
+  --papier:#fbfcfe; --karo:#d6e2f0; --tinte:#1f3a93; --blei:#4a4f57;
+  --rot:#c8102e; --gruen:#2e7d32; --flaeche:#ffffff; --karo-grund:#e8eef6;
+  --schrift:"Liberation Sans",Arial,Helvetica,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:var(--schrift); color:var(--blei); background:var(--papier);
+  background-image:
+    linear-gradient(var(--karo-grund) 1px,transparent 1px),
+    linear-gradient(90deg,var(--karo-grund) 1px,transparent 1px);
+  background-size:20px 20px; min-height:100vh; padding:2rem 1rem;
+}
+.rahmen{max-width:40rem;margin:0 auto}
+.reiter{display:flex;gap:.3rem;border-bottom:2px solid var(--tinte);margin:0 0 1.5rem}
+button.nav{font-size:1rem;padding:.5rem 1.1rem;border-bottom:0;border-radius:4px 4px 0 0;background:var(--flaeche);color:var(--tinte)}
+button.nav[aria-current=page]{background:var(--tinte);color:#fff}
+main{min-width:0}
+.liste{margin:0 0 1rem}
+.liste h2{margin:0 0 .5rem}
+.hinweis{margin:0 0 1.5rem;font-size:1.2rem;line-height:1.6;color:#2b2f36}
+table.zeiten{width:auto}
+table.zeiten td{border:0;padding:.15rem 1.5rem .15rem 0;font-size:.95rem;vertical-align:baseline}
+table.zeiten td:first-child{text-align:right}
+table.zeiten td:last-child{text-align:left;padding-right:0}
+table.zeiten tr.spitze td:first-child{font-size:2rem;font-weight:700;color:var(--tinte)}
+h1{color:var(--tinte);font-size:2rem;margin:0 0 1.5rem}
+h2{color:var(--tinte);font-size:1.25rem;margin:2rem 0 .5rem}
+section{background:var(--flaeche);border:2px solid var(--tinte);border-radius:4px;padding:1.5rem}
+[hidden]{display:none!important}
+fieldset{border:0;margin:0 0 1.25rem;padding:0}
+legend{font-weight:700;color:var(--tinte);margin-bottom:.5rem}
+.arten{display:flex;flex-wrap:wrap;gap:.5rem}
+.arten label{display:flex;align-items:center;gap:.4rem;border:1px solid var(--karo);padding:.4rem .7rem;border-radius:4px;cursor:pointer}
+.reihe{display:flex;flex-wrap:wrap;gap:1rem}
+.reihe label{display:flex;flex-direction:column;gap:.25rem;font-size:.9rem}
+input[type=number],input[type=text],select{font:inherit;font-size:1.1rem;padding:.4rem .5rem;width:8rem;border:1px solid var(--blei);border-radius:3px}
+button{font:inherit;font-weight:700;font-size:1.1rem;padding:.6rem 1.2rem;border:2px solid var(--tinte);border-radius:4px;background:var(--tinte);color:#fff;cursor:pointer}
+button.zweit{background:transparent;color:var(--tinte)}
+:focus-visible{outline:3px solid var(--rot);outline-offset:2px}
+.meldung{color:var(--rot);min-height:1.4em;margin:.75rem 0 0}
+.kopf{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;font-size:1.1rem}
+.uhr{font-weight:700;color:var(--tinte)}
+.aufgabe{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:.5rem;margin:2.5rem 0 1.5rem;font-size:clamp(2.2rem,8vw,3.6rem);color:var(--tinte);font-variant-numeric:tabular-nums}
+.aufgabe input{font-size:inherit;width:5.5ch;text-align:center;border:0;border-bottom:3px solid var(--tinte);border-radius:0;color:var(--tinte);background:transparent;padding:0}
+.aufgabe input:focus-visible{outline:none;border-bottom-color:var(--rot)}
+.rueck{text-align:center;min-height:1.5em;font-size:1.1rem}
+.richtig{color:var(--gruen)} .falsch{color:var(--rot)}
+.stufe{font-size:1.6rem;color:var(--tinte);font-weight:700;margin:0 0 .5rem;white-space:pre-line;line-height:1.35}
+.zahlen{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:.75rem;margin:1rem 0}
+.zahlen div{border-left:3px solid var(--tinte);padding-left:.6rem}
+.zahlen b{display:block;font-size:1.4rem;color:var(--tinte);font-variant-numeric:tabular-nums}
+.tab{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:.35rem .5rem;border-bottom:1px solid var(--karo)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--tinte)}
+.knoepfe{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.5rem}
+.klein{font-size:.85rem;margin:.5rem 0 0}
+.bestzeit{font-size:1.15rem;font-weight:700;color:var(--gruen);margin:0 0 .5rem}
+.bestzeit.leise{color:var(--blei);font-weight:400}
+.haken{display:flex;align-items:center;gap:.4rem;margin-top:.75rem}
+select{width:auto;min-width:16rem;background:#fff}
+#uebergang{min-width:9rem}
+.aufgabe button{font-size:1.3rem;align-self:center;padding:.5rem 1rem}
+</style>
+</head>
+<body>
+<div class="rahmen">
+<nav class="reiter" aria-label="Bereiche">
+  <button class="nav" type="button" data-ziel="kopfrechnen" aria-current="page">Kopfrechnen</button>
+  <button class="nav" type="button" data-ziel="bestenliste">Bestzeiten</button>
+</nav>
+<main>
+<div id="bereich-kopfrechnen">
+<h1>Kopfrechnen</h1>
+
+<section id="einstellung">
+  <fieldset>
+    <legend>Vorgabe</legend>
+    <select id="vorgabe" aria-label="Vorgabe"></select>
+  </fieldset>
+  <fieldset>
+    <legend>Rechenarten</legend>
+    <div class="arten">
+      <label><input type="checkbox" name="art" value="add" checked> Plus</label>
+      <label><input type="checkbox" name="art" value="sub" checked> Minus</label>
+      <label><input type="checkbox" name="art" value="mul"> Mal</label>
+      <label><input type="checkbox" name="art" value="div"> Geteilt</label>
+    </div>
+  </fieldset>
+  <fieldset id="feldRaum">
+    <legend>Zahlenraum</legend>
+    <div class="reihe">
+      <label>von <input type="number" id="min" value="1" step="1"></label>
+      <label>bis <input type="number" id="max" value="20" step="1"></label>
+      <label id="labelUebergang">Zehnerübergang <select id="uebergang"><option value="">gemischt</option><option value="mit">nur mit</option><option value="ohne">ohne</option></select></label>
+    </div>
+  </fieldset>
+  <fieldset id="feldMalGeteilt">
+    <legend>Mal und Geteilt</legend>
+    <label class="haken"><input type="checkbox" id="beliebig"> beliebig im Zahlenraum</label>
+    <div id="feldReihen">
+      <div class="reihe">
+        <label>Reihen <input type="text" id="reihen" autocomplete="off" placeholder="z. B. 2, 5, 10"></label>
+        <label id="labelMit">mal <input type="text" id="mit" autocomplete="off" placeholder="z. B. 1-10"></label>
+      </div>
+      <label class="haken"><input type="checkbox" id="quadrat"> nur Quadratzahlen</label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Runden</legend>
+    <div class="reihe">
+      <label>Anzahl <input type="number" id="runden" value="10" min="1" max="200" step="1"></label>
+    </div>
+  </fieldset>
+  <button id="start" type="button">Start</button>
+  <p class="meldung" id="fehler" role="alert"></p>
+</section>
+
+<section id="uebung" hidden>
+  <div class="kopf"><span id="fortschritt"></span><span class="uhr" id="uhr">0:00,0</span></div>
+  <div class="aufgabe">
+    <span id="term"></span><span>=</span>
+    <input id="eingabe" type="text" inputmode="numeric" autocomplete="off" aria-label="Ergebnis">
+    <button id="ok" type="button">OK</button>
+  </div>
+  <p class="rueck" id="rueck" aria-live="polite"></p>
+  <div class="knoepfe"><button class="zweit" id="abbruch" type="button">Abbrechen</button></div>
+</section>
+
+<section id="ergebnis" hidden>
+  <p class="stufe" id="stufe"></p>
+  <p class="bestzeit" id="bestzeit"></p>
+  <div class="zahlen" id="kennzahlen"></div>
+  <h2>Nach Rechenart</h2>
+  <div class="tab"><table id="tabArt"></table></div>
+  <h2 id="fehlerKopf">Fehler</h2>
+  <div class="tab"><table id="tabFehler"></table></div>
+  <div class="knoepfe">
+    <button id="nochmal" type="button">Nochmal</button>
+    <button class="zweit" id="auswahl" type="button">Zur Auswahl</button>
+  </div>
+</section>
+</div>
+<div id="bereich-bestenliste" hidden>
+<h1>Bestzeiten fehlerfreier Durchläufe</h1>
+<p class="hinweis">Hier zählen nur Durchgänge ohne Fehler.<br>Sorgfalt ist wichtiger als Tempo.<br>Ein einziger Fehler kostet dich mehr als jede Sekunde, die du durch Eile gewinnst.</p>
+<div id="listen"></div>
+</div>
+</main>
+</div>
+
+<script>
+const KONFIG = {
+  gewicht: { add: 1.0, sub: 1.2, mul: 1.5, div: 1.8 },
+  sollBasisSek: 2.0,
+  genauigkeit: [[0.90, "sicher"], [0.70, "teils sicher"], [0.00, "unsicher"]],
+  tempo: [[1.00, "schnell"], [0.60, "mittel"], [0.00, "langsam"]],
+  rueckmeldung: [
+    ["Schnell und richtig. Stark!", "Du rechnest sicher. Mit etwas Übung wirst du auch schneller.", "Du rechnest sicher. Das Tempo kommt beim Üben von allein."],
+    ["Du bist schnell. Wenn du etwas genauer hinschaust, stimmen noch mehr Ergebnisse.", "Du bist auf einem guten Weg. Achte zuerst auf richtige Ergebnisse.", "Übe weiter. Achte zuerst darauf, dass die Ergebnisse stimmen."],
+    ["Du rechnest sehr schnell. Nimm dir etwas mehr Zeit, dann stimmen mehr Ergebnisse.", "Einige Ergebnisse stimmen noch nicht. Nimm dir Zeit und rechne in Ruhe.", "Diese Aufgaben sind noch schwer für dich. Übe sie in Ruhe weiter, jede Runde hilft."]
+  ],
+  versuche: 200,
+  listenlaenge: 4,
+  speicher: "htmlhelper:kopfrechnen:bestenliste"
+};
+const VORGABEN = [
+  { id: "pm10", name: "Plus und Minus bis 10", arten: ["add", "sub"], min: 1, max: 10, reihen: "", mit: "", quadrat: false, beliebig: true },
+  { id: "pm20", name: "Plus und Minus bis 20", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true },
+  { id: "pm20o", name: "Plus und Minus bis 20 ohne Zehnerübergang", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true, uebergang: "ohne" },
+  { id: "pm20m", name: "Plus und Minus bis 20 mit Zehnerübergang", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true, uebergang: "mit" },
+  { id: "pm100", name: "Plus und Minus bis 100", arten: ["add", "sub"], min: 1, max: 100, reihen: "", mit: "", quadrat: false, beliebig: true },
+  { id: "kern", name: "Kernaufgaben des Einmaleins", arten: ["mul", "div"], min: 1, max: 100, reihen: "1, 2, 5, 10", mit: "1-10", quadrat: false, beliebig: false },
+  { id: "quadrat", name: "Quadratzahlen", arten: ["mul", "div"], min: 1, max: 100, reihen: "1-10", mit: "", quadrat: true, beliebig: false },
+  { id: "einmaleins", name: "Kleines Einmaleins", arten: ["mul", "div"], min: 1, max: 100, reihen: "1-10", mit: "1-10", quadrat: false, beliebig: false },
+  { id: "ganz", name: "Ganze Zahlen von −20 bis 20", arten: ["add", "sub"], min: -20, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true }
+];
+const START_VORGABE = "pm20";
+const NAME = { add: "Plus", sub: "Minus", mul: "Mal", div: "Geteilt" };
+const ZEICHEN = { add: "+", sub: "−", mul: "·", div: ":" };
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const zufall = (r, lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+function nichtTrivial(r, lo, hi) {
+  let x = zufall(r, lo, hi);
+  for (let i = 0; i < 20 && Math.abs(x) <= 1; i++) x = zufall(r, lo, hi);
+  return x;
+}
+const operandenRaum = (min, max) => [Math.min(min, 0), Math.max(max, 0)];
+function faktorBereich(a, min, max) {
+  const [oMin, oMax] = operandenRaum(min, max);
+  let lo = a > 0 ? Math.ceil(min / a) : Math.ceil(max / a);
+  let hi = a > 0 ? Math.floor(max / a) : Math.floor(min / a);
+  return [Math.max(lo, oMin), Math.min(hi, oMax)];
+}
+
+function faktorPaar(r, min, max, streng) {
+  const w = Math.floor(Math.sqrt(Math.max(Math.abs(min), Math.abs(max))));
+  const [oMin, oMax] = operandenRaum(min, max);
+  const lo0 = Math.max(oMin, -w), hi0 = Math.min(oMax, w);
+  if (lo0 > hi0) return null;
+  const a = nichtTrivial(r, lo0, hi0);
+  if (a === 0 || (streng && Math.abs(a) <= 1)) return null;
+  const [lo, hi] = faktorBereich(a, min, max);
+  if (lo > hi) return null;
+  const b = nichtTrivial(r, lo, hi);
+  if (streng && Math.abs(b) <= 1) return null;
+  return r() < 0.5 ? [a, b] : [b, a];
+}
+
+const ERZEUGER = {
+  add(r, min, max) {
+    const [oMin, oMax] = operandenRaum(min, max);
+    const erg = zufall(r, min, max);
+    const lo = Math.max(oMin, erg - oMax), hi = Math.min(oMax, erg - oMin);
+    if (lo > hi) return null;
+    const a = zufall(r, lo, hi);
+    return { a, b: erg - a, erg };
+  },
+  sub(r, min, max) {
+    const [oMin, oMax] = operandenRaum(min, max);
+    const a = zufall(r, min, max);
+    const lo = Math.max(oMin, a - oMax), hi = Math.min(oMax, a - oMin);
+    if (lo > hi) return null;
+    const b = zufall(r, lo, hi);
+    return { a, b, erg: a - b };
+  },
+  mul(r, min, max, streng) {
+    const p = faktorPaar(r, min, max, streng);
+    if (!p) return null;
+    return { a: p[0], b: p[1], erg: p[0] * p[1] };
+  },
+  div(r, min, max, streng) {
+    const p = faktorPaar(r, min, max, streng);
+    if (!p || p[0] === 0) return null;
+    return { a: p[0] * p[1], b: p[0], erg: p[1] };
+  }
+};
+
+function leseListe(text) {
+  const t = text.trim();
+  if (!t) return [];
+  const menge = new Set();
+  for (const teil of t.split(/[,;]/)) {
+    const m = teil.trim().match(/^(\d+)(?:\s*[-–]\s*(\d+))?$/);
+    if (!m) return null;
+    const a = Number(m[1]), b = m[2] === undefined ? a : Number(m[2]);
+    if (a < 1 || b < a || b > 1000) return null;
+    for (let x = a; x <= b; x++) menge.add(x);
+  }
+  return [...menge].sort((x, y) => x - y);
+}
+
+function erzeugeFaktor(art, r, faktoren) {
+  const a = faktoren.reihen[zufall(r, 0, faktoren.reihen.length - 1)];
+  const b = faktoren.quadrat ? a : faktoren.mit[zufall(r, 0, faktoren.mit.length - 1)];
+  if (art === "div") return { art, a: a * b, b: a, erg: b };
+  return r() < 0.5 ? { art, a, b, erg: a * b } : { art, a: b, b: a, erg: a * b };
+}
+
+const einer = n => Math.abs(n) % 10;
+function hatUebergang(art, t) {
+  if (art === "add") return einer(t.a) + einer(t.b) > 10;
+  if (art === "sub") return einer(t.erg) + einer(t.b) > 10;
+  return false;
+}
+function passtUebergang(art, t, uebergang) {
+  if (!uebergang || (art !== "add" && art !== "sub")) return true;
+  return (uebergang === "mit") === hatUebergang(art, t);
+}
+
+function erzeuge(art, r, min, max, faktoren, uebergang) {
+  if (faktoren && (art === "mul" || art === "div")) return erzeugeFaktor(art, r, faktoren);
+  for (const streng of [true, false]) {
+    for (let i = 0; i < KONFIG.versuche; i++) {
+      const t = ERZEUGER[art](r, min, max, streng);
+      if (t && t.a !== 0 && t.b !== 0 && t.erg !== 0 && passtUebergang(art, t, uebergang)) return { art, ...t };
+    }
+  }
+  return null;
+}
+
+function erzeugeSatz(arten, min, max, runden, seed, faktoren = null, uebergang = "") {
+  const r = mulberry32(seed);
+  const moeglich = arten.filter(art => erzeuge(art, mulberry32(seed), min, max, faktoren, uebergang));
+  if (!moeglich.length) return { moeglich, aufgaben: [] };
+  const aufgaben = [];
+  for (let i = 0; i < runden; i++) {
+    const vorher = aufgaben[aufgaben.length - 1];
+    let t = null;
+    for (let v = 0; v < 10; v++) {
+      const art = moeglich[zufall(r, 0, moeglich.length - 1)];
+      t = erzeuge(art, r, min, max, faktoren, uebergang);
+      if (!vorher || t.art !== vorher.art || t.a !== vorher.a || t.b !== vorher.b) break;
+    }
+    aufgaben.push(t);
+  }
+  return { moeglich, aufgaben };
+}
+
+const groesste = t => Math.max(Math.abs(t.a), Math.abs(t.b), Math.abs(t.erg));
+const schwierigkeit = t => KONFIG.gewicht[t.art] * (1 + Math.log10(Math.max(1, groesste(t))));
+function bewerte(t, antwort, sek) {
+  const d = schwierigkeit(t);
+  const soll = KONFIG.sollBasisSek * d;
+  const richtig = antwort === t.erg;
+  return { ...t, antwort, sek, richtig, d, soll };
+}
+function einordnen(quote, tempo) {
+  const g = KONFIG.genauigkeit.findIndex(([s]) => quote >= s);
+  const t = KONFIG.tempo.findIndex(([s]) => tempo >= s);
+  return { g, t, text: KONFIG.rueckmeldung[g][t] };
+}
+function auswerten(liste) {
+  const summe = (l, f) => l.reduce((s, x) => s + f(x), 0);
+  const gruppe = key => {
+    const m = new Map();
+    for (const x of liste) { const k = key(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }
+    return [...m].map(([k, l]) => ({
+      k, n: l.length, ok: l.filter(x => x.richtig).length,
+      zeit: summe(l, x => x.sek) / l.length
+    }));
+  };
+  const ok = liste.filter(x => x.richtig);
+  const tempo = summe(liste, x => x.soll) / Math.max(summe(liste, x => x.sek), 0.001);
+  return {
+    tempo, feld: einordnen(ok.length / liste.length, tempo), n: liste.length, ok: ok.length,
+    fehlerquote: 1 - ok.length / liste.length,
+    zeit: summe(liste, x => x.sek),
+    zeitJeAufgabe: summe(liste, x => x.sek) / liste.length,
+    nachArt: gruppe(x => x.art).sort((a, b) => Object.keys(NAME).indexOf(a.k) - Object.keys(NAME).indexOf(b.k)),
+    fehler: liste.filter(x => !x.richtig)
+  };
+}
+const zahl = n => n < 0 ? "(" + String(n).replace("-", "−") + ")" : String(n);
+const term = t => `${String(t.a).replace("-", "−")} ${ZEICHEN[t.art]} ${zahl(t.b)}`;
+const leseZahl = s => { s = s.trim().replace(/[−–]/g, "-"); return /^-?\d+$/.test(s) ? parseInt(s, 10) : null; };
+
+function bestzeitSchluessel(e) {
+  const raum = e.arten.includes("add") || e.arten.includes("sub") || ((e.arten.includes("mul") || e.arten.includes("div")) && !e.faktoren);
+  const s = {
+    arten: [...e.arten].sort(), runden: e.runden,
+    raum: raum ? [e.min, e.max] : null,
+    faktoren: e.faktoren ? [e.faktoren.reihen, e.faktoren.quadrat ? null : e.faktoren.mit, e.faktoren.quadrat] : null
+  };
+  if (e.uebergang) s.uebergang = e.uebergang;
+  return JSON.stringify(s);
+}
+function einstellungAusVorgabe(v, runden) {
+  const faktoren = v.beliebig ? null : { reihen: leseListe(v.reihen), mit: v.quadrat ? null : leseListe(v.mit), quadrat: v.quadrat };
+  return { arten: v.arten, min: v.min, max: v.max, runden, faktoren, uebergang: v.uebergang || "" };
+}
+function kompakt(liste) {
+  const teile = [];
+  for (let i = 0; i < liste.length; i++) {
+    let j = i;
+    while (j + 1 < liste.length && liste[j + 1] === liste[j] + 1) j++;
+    teile.push(j - i >= 2 ? `${liste[i]} bis ${liste[j]}` : liste.slice(i, j + 1).join(", "));
+    i = j;
+  }
+  return teile.join(", ");
+}
+function bestenlisteTitel(e) {
+  const s = bestzeitSchluessel(e);
+  const v = VORGABEN.find(x => bestzeitSchluessel(einstellungAusVorgabe(x, e.runden)) === s);
+  if (v) return `${v.name}, ${e.runden} Runden`;
+  const teile = [e.arten.map(a => NAME[a]).join(" und ")];
+  const raum = e.arten.includes("add") || e.arten.includes("sub") || !e.faktoren;
+  if (raum) teile.push(`${e.min} bis ${e.max}`.replace(/-/g, "−"));
+  if (e.uebergang) teile.push(`${e.uebergang} Zehnerübergang`);
+  if (e.faktoren) teile.push(e.faktoren.quadrat ? `Quadratzahlen ${kompakt(e.faktoren.reihen)}` : `Reihen ${kompakt(e.faktoren.reihen)} mal ${kompakt(e.faktoren.mit)}`);
+  teile.push(`${e.runden} Runden`);
+  return teile.join(", ");
+}
+function bestenlisteEintragen(liste, schluessel, titel, zeit, datum) {
+  const alt = liste[schluessel] ? liste[schluessel].eintraege : [];
+  const neu = { zeit, datum };
+  const eintraege = [...alt, neu].sort((x, y) => x.zeit - y.zeit).slice(0, KONFIG.listenlaenge);
+  const platz = eintraege.indexOf(neu) + 1;
+  return { liste: { ...liste, [schluessel]: { titel, eintraege } }, platz, vorher: alt.length ? alt[0].zeit : null };
+}
+
+if (typeof module !== "undefined") module.exports = { hatUebergang, erzeugeSatz, bewerte, auswerten, mulberry32, leseZahl, term, leseListe, VORGABEN, bestzeitSchluessel, bestenlisteTitel, bestenlisteEintragen, kompakt };
+
+if (typeof document !== "undefined") (function () {
+  const $ = id => document.getElementById(id);
+  const zeit = s => { const m = Math.floor(s / 60); return m + ":" + (s % 60).toFixed(1).padStart(4, "0").replace(".", ","); };
+  const pz = x => Math.round(x * 100) + " %";
+  let lauf = null, uhrTakt = null, letzteEinstellung = null;
+  const neuerStartwert = () => Math.floor(Math.random() * 4294967296);
+
+  function einstellungLesen() {
+    const arten = [...document.querySelectorAll("input[name=art]:checked")].map(e => e.value);
+    const min = Number($("min").value), max = Number($("max").value), runden = Number($("runden").value);
+    if (!arten.length) return "Bitte mindestens eine Rechenart wählen.";
+    if (!Number.isInteger(runden) || runden < 1 || runden > 200) return "Runden: eine ganze Zahl von 1 bis 200.";
+    const malGeteilt = arten.includes("mul") || arten.includes("div");
+    const quadrat = $("quadrat").checked;
+    let faktoren = null;
+    if (malGeteilt && !$("beliebig").checked) {
+      const reihen = leseListe($("reihen").value);
+      if (!reihen || !reihen.length) return "Reihen: Zahlen ab 1, getrennt durch Komma, oder ein Bereich wie 1-10.";
+      let mit = null;
+      if (!quadrat) {
+        mit = leseListe($("mit").value);
+        if (!mit || !mit.length) return "„mal“: Zahlen ab 1, getrennt durch Komma, oder ein Bereich wie 1-10.";
+      }
+      faktoren = { reihen, mit, quadrat };
+    }
+    if (arten.includes("add") || arten.includes("sub") || (malGeteilt && !faktoren)) {
+      if (!Number.isInteger(min) || !Number.isInteger(max)) return "Der Zahlenraum braucht ganze Zahlen.";
+      if (min >= max) return "„von“ muss kleiner als „bis“ sein.";
+    }
+    const uebergang = $("labelUebergang").hidden ? "" : $("uebergang").value;
+    return { arten, min, max, runden, seed: neuerStartwert(), faktoren, uebergang };
+  }
+
+  function starten(e) {
+    const satz = erzeugeSatz(e.arten, e.min, e.max, e.runden, e.seed, e.faktoren, e.uebergang);
+    const weg = e.arten.filter(a => !satz.moeglich.includes(a)).map(a => NAME[a]);
+    if (!satz.aufgaben.length) { $("fehler").textContent = "In diesem Zahlenraum lässt sich keine der gewählten Rechenarten bilden."; return; }
+    $("fehler").textContent = weg.length ? "Nicht möglich in diesem Zahlenraum, daher weggelassen: " + weg.join(", ") : "";
+    letzteEinstellung = e;
+    lauf = { e, aufgaben: satz.aufgaben, i: 0, ergebnisse: [], start: performance.now(), t0: performance.now() };
+    $("einstellung").hidden = true; $("ergebnis").hidden = true; $("uebung").hidden = false;
+    $("rueck").textContent = ""; $("rueck").className = "rueck";
+    zeigeAufgabe();
+    uhrTakt = setInterval(() => { $("uhr").textContent = zeit((performance.now() - lauf.start) / 1000); }, 100);
+  }
+
+  function zeigeAufgabe() {
+    const t = lauf.aufgaben[lauf.i];
+    $("fortschritt").textContent = `Aufgabe ${lauf.i + 1} von ${lauf.aufgaben.length}`;
+    $("term").textContent = term(t);
+    $("eingabe").inputMode = lauf.e.min < 0 ? "text" : "numeric";
+    $("eingabe").value = "";
+    $("eingabe").focus();
+    lauf.t0 = performance.now();
+  }
+
+  function abgeben() {
+    const antwort = leseZahl($("eingabe").value);
+    if (antwort === null) { $("rueck").className = "rueck falsch"; $("rueck").textContent = "Bitte eine ganze Zahl eingeben."; return; }
+    const t = lauf.aufgaben[lauf.i];
+    const b = bewerte(t, antwort, (performance.now() - lauf.t0) / 1000);
+    lauf.ergebnisse.push(b);
+    $("rueck").className = "rueck " + (b.richtig ? "richtig" : "falsch");
+    $("rueck").textContent = b.richtig ? `Richtig: ${term(t)} = ${t.erg}` : `Falsch: ${term(t)} = ${t.erg}, nicht ${antwort}`;
+    if (++lauf.i < lauf.aufgaben.length) zeigeAufgabe(); else beenden();
+  }
+
+  function beenden() {
+    clearInterval(uhrTakt);
+    const a = auswerten(lauf.ergebnisse);
+    $("uebung").hidden = true; $("ergebnis").hidden = false;
+    $("stufe").textContent = a.feld.text.replace(/([.!]) /g, "$1\n");
+    bestzeitZeigen(a);
+    $("kennzahlen").innerHTML = [
+      ["Richtig", `${a.ok} von ${a.n}`], ["Fehlerquote", pz(a.fehlerquote)],
+      ["Gesamtzeit", zeit(a.zeit)], ["Ø Zeit je Aufgabe", zeit(a.zeitJeAufgabe)]
+    ].map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join("");
+    const tabelle = (el, kopf, zeilen) => { $(el).innerHTML = `<tr>${kopf.map(h => `<th>${h}</th>`).join("")}</tr>` + zeilen.map(z => `<tr>${z.map(c => `<td>${c}</td>`).join("")}</tr>`).join(""); };
+    const gz = g => [g.n, g.ok, pz(1 - g.ok / g.n), zeit(g.zeit)];
+    tabelle("tabArt", ["Rechenart", "Aufgaben", "Richtig", "Fehler", "Ø Zeit"], a.nachArt.map(g => [NAME[g.k], ...gz(g)]));
+    $("fehlerKopf").hidden = !a.fehler.length; $("tabFehler").hidden = !a.fehler.length;
+    tabelle("tabFehler", ["Aufgabe", "Deine Antwort", "Richtig"], a.fehler.map(f => [term(f), String(f.antwort).replace("-", "−"), String(f.erg).replace("-", "−")]));
+    $("nochmal").focus();
+  }
+
+  function listeLesen() {
+    try { const v = localStorage.getItem(KONFIG.speicher); return v ? JSON.parse(v) : {}; } catch (err) { return {}; }
+  }
+  function listeSchreiben(liste) {
+    try { localStorage.setItem(KONFIG.speicher, JSON.stringify(liste)); } catch (err) { }
+  }
+  function bestzeitZeigen(a) {
+    const el = $("bestzeit");
+    const liste = listeLesen();
+    const schluessel = bestzeitSchluessel(lauf.e);
+    const bisher = liste[schluessel] ? liste[schluessel].eintraege[0].zeit : null;
+    const bestText = bisher === null ? "" : ` Bestzeit: ${zeit(bisher)}.`;
+    el.className = "bestzeit leise";
+    if (a.ok !== a.n) { el.textContent = `Bestzeit zählt, wenn alle Aufgaben stimmen.${bestText}`; return; }
+    const erg = bestenlisteEintragen(liste, schluessel, bestenlisteTitel(lauf.e), a.zeit, new Date().toISOString());
+    listeSchreiben(erg.liste);
+    if (erg.platz === 1) {
+      el.className = "bestzeit";
+      el.textContent = erg.vorher === null ? `Erste Bestzeit: ${zeit(a.zeit)}` : `Neue Bestzeit: ${zeit(a.zeit)} (vorher ${zeit(erg.vorher)})`;
+    } else if (erg.platz > 1) {
+      el.textContent = `Platz ${erg.platz} deiner Bestzeiten: ${zeit(a.zeit)}.${bestText}`;
+    } else {
+      el.textContent = `Diesmal ${zeit(a.zeit)}.${bestText}`;
+    }
+  }
+
+  function datumText(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+  function bestenlisteZeigen() {
+    const liste = listeLesen();
+    const reihenfolge = t => { const i = VORGABEN.findIndex(v => t.startsWith(v.name + ",")); return i < 0 ? VORGABEN.length : i; };
+    const eintraege = Object.values(liste).sort((x, y) => reihenfolge(x.titel) - reihenfolge(y.titel) || x.titel.localeCompare(y.titel, "de"));
+    const ziel = $("listen");
+    ziel.innerHTML = "";
+    if (!eintraege.length) {
+      ziel.innerHTML = `<section class="liste"><p>Noch keine Bestzeiten.</p></section>`;
+      return;
+    }
+    for (const l of eintraege) {
+      const sec = document.createElement("section");
+      sec.className = "liste";
+      const h = document.createElement("h2"); h.textContent = l.titel; sec.appendChild(h);
+      const tab = document.createElement("table"); tab.className = "zeiten";
+      l.eintraege.forEach((x, i) => {
+        const tr = document.createElement("tr");
+        if (i === 0) tr.className = "spitze";
+        const tz = document.createElement("td"); tz.textContent = zeit(x.zeit);
+        const td = document.createElement("td"); td.textContent = datumText(x.datum);
+        tr.append(tz, td); tab.appendChild(tr);
+      });
+      sec.appendChild(tab);
+      ziel.appendChild(sec);
+    }
+  }
+
+  function bereichZeigen(ziel) {
+    if (ziel !== "kopfrechnen" && !$("uebung").hidden) zurueck();
+    document.querySelectorAll("button.nav").forEach(b => { if (b.dataset.ziel === ziel) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    $("bereich-kopfrechnen").hidden = ziel !== "kopfrechnen";
+    $("bereich-bestenliste").hidden = ziel !== "bestenliste";
+    if (ziel === "bestenliste") bestenlisteZeigen();
+  }
+
+  function zurueck() {
+    clearInterval(uhrTakt);
+    $("uebung").hidden = true; $("ergebnis").hidden = true; $("einstellung").hidden = false;
+    $("start").focus();
+  }
+
+  function vorgabeSetzen(id) {
+    const v = VORGABEN.find(x => x.id === id);
+    if (!v) return;
+    document.querySelectorAll("input[name=art]").forEach(c => { c.checked = v.arten.includes(c.value); });
+    $("min").value = v.min; $("max").value = v.max;
+    $("reihen").value = v.reihen; $("mit").value = v.mit; $("quadrat").checked = v.quadrat;
+    $("beliebig").checked = v.beliebig;
+    $("uebergang").value = v.uebergang || "";
+    $("fehler").textContent = "";
+    sichtbarkeit();
+  }
+
+  function sichtbarkeit() {
+    const arten = [...document.querySelectorAll("input[name=art]:checked")].map(e => e.value);
+    const malGeteilt = arten.includes("mul") || arten.includes("div");
+    const beliebig = $("beliebig").checked;
+    $("feldMalGeteilt").hidden = !malGeteilt;
+    $("feldReihen").hidden = beliebig;
+    $("labelMit").hidden = $("quadrat").checked;
+    const plusMinus = arten.includes("add") || arten.includes("sub");
+    $("feldRaum").hidden = !(plusMinus || (malGeteilt && beliebig));
+    $("labelUebergang").hidden = !(plusMinus && Number($("min").value) >= 0);
+  }
+
+  $("vorgabe").innerHTML = VORGABEN.map(v => `<option value="${v.id}">${v.name}</option>`).join("") + `<option value="">Eigene Einstellung</option>`;
+  $("vorgabe").value = START_VORGABE;
+  vorgabeSetzen(START_VORGABE);
+  $("vorgabe").addEventListener("change", () => vorgabeSetzen($("vorgabe").value));
+  ["min", "max", "reihen", "mit"].forEach(id => $(id).addEventListener("input", () => { $("vorgabe").value = ""; sichtbarkeit(); }));
+  [...document.querySelectorAll("input[name=art]"), $("quadrat"), $("beliebig"), $("uebergang")].forEach(c => c.addEventListener("change", () => { $("vorgabe").value = ""; sichtbarkeit(); }));
+
+  $("start").addEventListener("click", () => {
+    const e = einstellungLesen();
+    if (typeof e === "string") { $("fehler").textContent = e; return; }
+    starten(e);
+  });
+  $("eingabe").addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); abgeben(); } });
+  $("ok").addEventListener("pointerdown", ev => ev.preventDefault());
+  $("ok").addEventListener("click", () => { abgeben(); $("eingabe").focus(); });
+  $("abbruch").addEventListener("click", zurueck);
+  $("nochmal").addEventListener("click", () => starten({ ...letzteEinstellung, seed: neuerStartwert() }));
+  $("auswahl").addEventListener("click", zurueck);
+  document.querySelectorAll("button.nav").forEach(b => b.addEventListener("click", () => bereichZeigen(b.dataset.ziel)));
+})();
+</script>
+</body>
+</html>
