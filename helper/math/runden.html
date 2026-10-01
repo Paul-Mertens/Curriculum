@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Stand: 2026-10-01 · Änderung 6 -->
+<!-- Stand: 2026-10-01 · Änderung 7 -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -106,6 +106,9 @@ select{width:auto;min-width:16rem;background:#fff}
       <label><input type="checkbox" name="stelle" value="1000"> Tausender</label>
       <label><input type="checkbox" name="stelle" value="10000"> Zehntausender</label>
       <label><input type="checkbox" name="stelle" value="100000"> Hunderttausender</label>
+      <label><input type="checkbox" name="stelle" value="1"> Ganze</label>
+      <label><input type="checkbox" name="stelle" value="0.1"> Zehntel</label>
+      <label><input type="checkbox" name="stelle" value="0.01"> Hundertstel</label>
     </div>
   </fieldset>
   <fieldset>
@@ -177,19 +180,63 @@ const zufall = (r, lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
 const waehle = (r, liste) => liste[zufall(r, 0, liste.length - 1)];
 const gruppiert = n => { const s = String(n); return s.length >= 5 ? s.replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f") : s; };
 
-const STELLEN = [[10, "Zehner"], [100, "Hunderter"], [1000, "Tausender"], [10000, "Zehntausender"], [100000, "Hunderttausender"]];
+const STELLEN = [[10, "Zehner"], [100, "Hunderter"], [1000, "Tausender"], [10000, "Zehntausender"], [100000, "Hunderttausender"], [1, "Ganze"], [0.1, "Zehntel"], [0.01, "Hundertstel"]];
 const stellenName = s => STELLEN.find(x => x[0] === s)[1];
+const P = n => Math.pow(10, n);
+function mitKomma(n, d) {
+  if (d <= 0) return gruppiert(n);
+  const s = String(n).padStart(d + 1, "0");
+  return gruppiert(s.slice(0, s.length - d)) + "," + s.slice(s.length - d);
+}
+function kanonisch(s) {
+  const m = s.match(/^(\d*)(?:,(\d*))?$/);
+  if (!m || (m[1] === "" && !m[2])) return null;
+  const ganz = String(Number(m[1] || "0"));
+  const rest = (m[2] || "").replace(/0+$/, "");
+  return rest ? ganz + "," + rest : ganz;
+}
+function ganzzahlig(r, s) {
+  const unten = s * P(zufall(r, 0, 1)), oben = unten * 10 - 1;
+  let n;
+  if (r() < 0.25) {
+    const einheit = s / 10;
+    const rest = 5 * einheit + (einheit > 1 ? zufall(r, 0, einheit - 1) : 0);
+    n = zufall(r, unten / s, Math.floor((oben - rest) / s)) * s + rest;
+  } else {
+    do { n = zufall(r, unten, oben); } while (n % s === 0);
+  }
+  return { s, zahl: gruppiert(n), erg: gruppiert(Math.round(n / s) * s), wert: String(Math.round(n / s) * s), ziffern: String(n).length };
+}
+function dezimal(r, s) {
+  const p = Math.round(-Math.log10(s)), k = zufall(r, 1, 2), d = p + k, schritt = P(k);
+  const g = r() < 0.5 ? zufall(r, 0, 9) : zufall(r, 10, 99);
+  const fall = r();
+  let N;
+  for (let v = 0; v < 100; v++) {
+    let q = zufall(r, g * P(p), (g + 1) * P(p) - 1);
+    if (fall < 0.1 && p > 0) q = Math.floor(q / 10) * 10 + 9;
+    const rest = fall < 0.25 ? 5 * P(k - 1) + (k > 1 ? zufall(r, 1, 9) : 0) : zufall(r, 1, schritt - 1);
+    N = q * schritt + rest;
+    if (N % 10 !== 0) break;
+  }
+  const R = Math.round(N / schritt);
+  return { s, zahl: mitKomma(N, d), erg: mitKomma(R, p), wert: kanonisch(mitKomma(R, p).replace(/\u202f/g, "")), ziffern: String(N).length };
+}
 const H = {
   speicher: "htmlhelper:runden:bestenliste",
-  modus: "eingabe", inputMode: "numeric", eingabeBreite: "8ch", zeichen: "≈", rundenWort: "Aufgaben",
-  eingabeHinweis: "Bitte eine ganze Zahl eingeben.",
+  modus: "eingabe", inputMode: "decimal", eingabeBreite: "8ch", zeichen: "≈", rundenWort: "Aufgaben",
+  eingabeHinweis: "Bitte eine Zahl eingeben.",
   gruppenName: "Stelle", gruppen: STELLEN.map(x => x[1]),
   VORGABEN: [
     { id: "z", name: "Auf Zehner", stellen: [10] },
     { id: "h", name: "Auf Hunderter", stellen: [100] },
     { id: "t", name: "Auf Tausender", stellen: [1000] },
     { id: "zht", name: "Gemischt: Zehner, Hunderter, Tausender", stellen: [10, 100, 1000] },
-    { id: "gross", name: "Große Zahlen: Zehntausender, Hunderttausender", stellen: [10000, 100000] }
+    { id: "gross", name: "Große Zahlen: Zehntausender, Hunderttausender", stellen: [10000, 100000] },
+    { id: "dg", name: "Dezimalzahlen auf Ganze", stellen: [1] },
+    { id: "dz", name: "Dezimalzahlen auf Zehntel", stellen: [0.1] },
+    { id: "dh", name: "Dezimalzahlen auf Hundertstel", stellen: [0.01] },
+    { id: "dmix", name: "Dezimalzahlen gemischt: Ganze, Zehntel, Hundertstel", stellen: [1, 0.1, 0.01] }
   ],
   setzen($, v) {
     document.querySelectorAll("input[name=stelle]").forEach(c => { c.checked = v.stellen.includes(Number(c.value)); });
@@ -204,30 +251,22 @@ const H = {
   beschreibung(e) { return "Auf " + [...e.stellen].sort((a, b) => a - b).map(stellenName).join(" und "); },
   erzeuge(r, e) {
     const s = waehle(r, e.stellen);
-    const unten = s * Math.pow(10, zufall(r, 0, 1)), oben = unten * 10 - 1;
-    let n;
-    if (r() < 0.25) {
-      const einheit = s / 10;
-      const rest = 5 * einheit + (einheit > 1 ? zufall(r, 0, einheit - 1) : 0);
-      n = zufall(r, unten / s, Math.floor((oben - rest) / s)) * s + rest;
-    } else {
-      do { n = zufall(r, unten, oben); } while (n % s === 0);
-    }
-    return { n, s, erg: Math.round(n / s) * s };
+    return s >= 10 ? ganzzahlig(r, s) : dezimal(r, s);
   },
   auftrag(t) { return "Runde auf " + stellenName(t.s) + "."; },
-  zeige(t) { return gruppiert(t.n); },
+  zeige(t) { return t.zahl; },
   einheit() { return ""; },
-  text(t) { return gruppiert(t.n) + " auf " + stellenName(t.s); },
-  loesung(t) { return gruppiert(t.erg); },
-  satz(t) { return gruppiert(t.n) + " ≈ " + gruppiert(t.erg); },
+  text(t) { return t.zahl + " auf " + stellenName(t.s); },
+  loesung(t) { return t.erg; },
+  satz(t) { return t.zahl + " ≈ " + t.erg; },
   gruppe(t) { return stellenName(t.s); },
-  soll(t) { return 1.5 + 0.6 * String(t.n).length; },
+  soll(t) { return 1.5 + 0.6 * t.ziffern; },
   pruefe(t, roh) {
-    const s = roh.trim().replace(/[\s.\u202f\u00a0]/g, "");
-    if (!/^\d+$/.test(s)) return { gueltig: false };
-    const v = Number(s);
-    return { gueltig: true, richtig: v === t.erg, anzeige: gruppiert(v) };
+    const roh2 = roh.trim().replace(/[\s\u202f\u00a0]/g, "");
+    const s = kanonisch(t.s < 10 ? roh2.replace(".", ",") : roh2.replace(/\./g, ""));
+    if (s === null) return { gueltig: false };
+    const [g, d] = s.split(",");
+    return { gueltig: true, richtig: s === t.wert, anzeige: gruppiert(g) + (d ? "," + d : "") };
   }
 };
 
@@ -279,7 +318,7 @@ function bestenlisteEintragen(liste, schluessel, titel, zeit, datum) {
   return { liste: { ...liste, [schluessel]: { titel, eintraege } }, platz, vorher: alt.length ? alt[0].zeit : null };
 }
 
-if (typeof module !== "undefined") module.exports = { H, erzeugeSatz, auswerten, bestzeitSchluessel, bestenlisteTitel, bestenlisteEintragen, gruppiert };
+if (typeof module !== "undefined") module.exports = { kanonisch, H, erzeugeSatz, auswerten, bestzeitSchluessel, bestenlisteTitel, bestenlisteEintragen, gruppiert };
 
 if (typeof document !== "undefined") (function () {
   const $ = id => document.getElementById(id);
