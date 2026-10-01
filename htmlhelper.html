@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Stand: 2026-10-01 · Änderung 11 -->
+<!-- Stand: 2026-10-01 · Änderung 7 -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kopfrechnen</title>
+<title>Mathe üben</title>
 <style>
 :root{
   --papier:#fbfcfe; --karo:#d6e2f0; --tinte:#1f3a93; --blei:#4a4f57;
@@ -20,10 +20,12 @@ body{
     linear-gradient(90deg,var(--karo-grund) 1px,transparent 1px);
   background-size:20px 20px; min-height:100vh; padding:2rem 1rem;
 }
-.rahmen{max-width:40rem;margin:0 auto}
-.reiter{display:flex;gap:.3rem;border-bottom:2px solid var(--tinte);margin:0 0 1.5rem}
-button.nav{font-size:1rem;padding:.5rem 1.1rem;border-bottom:0;border-radius:4px 4px 0 0;background:var(--flaeche);color:var(--tinte)}
+.rahmen{display:grid;grid-template-columns:6rem minmax(0,1fr);gap:1.5rem;max-width:48rem;margin:0 auto}
+.leiste{display:flex;flex-direction:column;gap:.6rem;position:sticky;top:2rem;align-self:start}
+button.nav{display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:.7rem .3rem;font-size:.8rem;background:var(--flaeche);color:var(--tinte)}
 button.nav[aria-current=page]{background:var(--tinte);color:#fff}
+.icon{width:2rem;height:2rem}
+.icon-rechnen{display:grid;grid-template-columns:1fr 1fr;place-items:center;font-size:1.15rem;line-height:1;font-weight:700}
 main{min-width:0}
 .liste{margin:0 0 1rem}
 .liste h2{margin:0 0 .5rem}
@@ -33,6 +35,11 @@ table.zeiten td{border:0;padding:.15rem 1.5rem .15rem 0;font-size:.95rem;vertica
 table.zeiten td:first-child{text-align:right}
 table.zeiten td:last-child{text-align:left;padding-right:0}
 table.zeiten tr.spitze td:first-child{font-size:2rem;font-weight:700;color:var(--tinte)}
+@media (max-width:40rem){
+  .rahmen{grid-template-columns:minmax(0,1fr)}
+  .leiste{flex-direction:row;position:static}
+  button.nav{flex:1;flex-direction:row;justify-content:center;gap:.6rem}
+}
 h1{color:var(--tinte);font-size:2rem;margin:0 0 1.5rem}
 h2{color:var(--tinte);font-size:1.25rem;margin:2rem 0 .5rem}
 section{background:var(--flaeche);border:2px solid var(--tinte);border-radius:4px;padding:1.5rem}
@@ -76,9 +83,9 @@ select{width:auto;min-width:16rem;background:#fff}
 </head>
 <body>
 <div class="rahmen">
-<nav class="reiter" aria-label="Bereiche">
-  <button class="nav" type="button" data-ziel="kopfrechnen" aria-current="page">Kopfrechnen</button>
-  <button class="nav" type="button" data-ziel="bestenliste">Bestzeiten</button>
+<nav class="leiste" aria-label="Bereiche">
+  <button class="nav" type="button" data-ziel="kopfrechnen" aria-current="page"><span class="icon icon-rechnen" aria-hidden="true"><span>+</span><span>−</span><span>·</span><span>:</span></span>Kopfrechnen</button>
+  <button class="nav" type="button" data-ziel="bestenliste"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17h18v3H3zM3 6l5 4.5L12 3l4 7.5L21 6l-1.8 9.5H4.8z"/></svg>Bestzeiten</button>
 </nav>
 <main>
 <div id="bereich-kopfrechnen">
@@ -177,16 +184,16 @@ const KONFIG = {
 };
 const VORGABEN = [
   { id: "pm10", name: "Plus und Minus bis 10", arten: ["add", "sub"], min: 1, max: 10, reihen: "", mit: "", quadrat: false, beliebig: true },
-  { id: "pm20o", name: "Plus und Minus bis 20 ohne Zehnerübergang", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true, uebergang: "ohne" },
   { id: "pm20", name: "Plus und Minus bis 20", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true },
+  { id: "pm20o", name: "Plus und Minus bis 20 ohne Zehnerübergang", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true, uebergang: "ohne" },
   { id: "pm20m", name: "Plus und Minus bis 20 mit Zehnerübergang", arten: ["add", "sub"], min: 1, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true, uebergang: "mit" },
   { id: "pm100", name: "Plus und Minus bis 100", arten: ["add", "sub"], min: 1, max: 100, reihen: "", mit: "", quadrat: false, beliebig: true },
   { id: "kern", name: "Kernaufgaben des Einmaleins", arten: ["mul", "div"], min: 1, max: 100, reihen: "1, 2, 5, 10", mit: "1-10", quadrat: false, beliebig: false },
   { id: "quadrat", name: "Quadratzahlen", arten: ["mul", "div"], min: 1, max: 100, reihen: "1-10", mit: "", quadrat: true, beliebig: false },
   { id: "einmaleins", name: "Kleines Einmaleins", arten: ["mul", "div"], min: 1, max: 100, reihen: "1-10", mit: "1-10", quadrat: false, beliebig: false },
-  { id: "ganz", name: "Ganze Zahlen von −20 bis 20", arten: ["add", "sub"], min: -20, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true },
-  { id: "ganzmd", name: "Ganze Zahlen mal und geteilt von −100 bis 100", arten: ["mul", "div"], min: -100, max: 100, reihen: "", mit: "", quadrat: false, beliebig: true }
+  { id: "ganz", name: "Ganze Zahlen von −20 bis 20", arten: ["add", "sub"], min: -20, max: 20, reihen: "", mit: "", quadrat: false, beliebig: true }
 ];
+const START_VORGABE = "pm20";
 const NAME = { add: "Plus", sub: "Minus", mul: "Mal", div: "Geteilt" };
 const ZEICHEN = { add: "+", sub: "−", mul: "·", div: ":" };
 
@@ -556,22 +563,6 @@ if (typeof document !== "undefined") (function () {
     $("start").focus();
   }
 
-  const merkSchluessel = KONFIG.speicher.replace(":bestenliste", ":einstellung");
-  const merkFelder = () => [...document.querySelectorAll("#einstellung input, #einstellung select")].map(el => [el.id || el.name + ":" + el.value, el]);
-  function einstellungMerken() {
-    const z = {};
-    merkFelder().forEach(([k, el]) => { z[k] = el.type === "checkbox" ? el.checked : el.value; });
-    try { localStorage.setItem(merkSchluessel, JSON.stringify(z)); } catch (err) { }
-  }
-  function einstellungHolen() {
-    let z = null;
-    try { z = JSON.parse(localStorage.getItem(merkSchluessel)); } catch (err) { }
-    if (!z) return false;
-    merkFelder().forEach(([k, el]) => { if (k in z) { if (el.type === "checkbox") el.checked = z[k]; else el.value = z[k]; } });
-    if (![...$("vorgabe").options].some(o => o.value === $("vorgabe").value)) $("vorgabe").value = "";
-    return true;
-  }
-
   function vorgabeSetzen(id) {
     const v = VORGABEN.find(x => x.id === id);
     if (!v) return;
@@ -597,14 +588,11 @@ if (typeof document !== "undefined") (function () {
   }
 
   $("vorgabe").innerHTML = VORGABEN.map(v => `<option value="${v.id}">${v.name}</option>`).join("") + `<option value="">Eigene Einstellung</option>`;
-  $("vorgabe").value = VORGABEN[0].id;
-  vorgabeSetzen(VORGABEN[0].id);
-  if (einstellungHolen()) sichtbarkeit();
+  $("vorgabe").value = START_VORGABE;
+  vorgabeSetzen(START_VORGABE);
   $("vorgabe").addEventListener("change", () => vorgabeSetzen($("vorgabe").value));
   ["min", "max", "reihen", "mit"].forEach(id => $(id).addEventListener("input", () => { $("vorgabe").value = ""; sichtbarkeit(); }));
   [...document.querySelectorAll("input[name=art]"), $("quadrat"), $("beliebig"), $("uebergang")].forEach(c => c.addEventListener("change", () => { $("vorgabe").value = ""; sichtbarkeit(); }));
-
-  ["input", "change"].forEach(t => $("einstellung").addEventListener(t, einstellungMerken));
 
   $("start").addEventListener("click", () => {
     const e = einstellungLesen();

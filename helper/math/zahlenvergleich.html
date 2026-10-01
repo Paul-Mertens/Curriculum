@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Stand: 2026-10-01 · Änderung 6 -->
+<!-- Stand: 2026-10-01 · Änderung 5 -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Runden</title>
+<title>Zahlen vergleichen</title>
 <style>
 :root{
   --papier:#fbfcfe; --karo:#d6e2f0; --tinte:#1f3a93; --blei:#4a4f57;
@@ -81,17 +81,20 @@ select{width:auto;min-width:16rem;background:#fff}
 .rueck .bruch,td .bruch{font-size:.9em;margin:0 .1em}
 .fragezeichen{display:inline-block;min-width:1.4em;text-align:center;border-bottom:3px solid var(--tinte)}
 .antwort{display:inline-flex;align-items:baseline;gap:.5rem;white-space:nowrap}
+#zahlart{min-width:12rem}
+#bisnat{min-width:9rem}
+#stellen{min-width:4rem}
 </style>
 </head>
 <body>
 <div class="rahmen">
 <nav class="reiter" aria-label="Bereiche">
-  <button class="nav" type="button" data-ziel="uebung" aria-current="page">Runden</button>
+  <button class="nav" type="button" data-ziel="uebung" aria-current="page">Zahlen vergleichen</button>
   <button class="nav" type="button" data-ziel="bestenliste">Bestzeiten</button>
 </nav>
 <main>
 <div id="bereich-uebung">
-<h1>Runden</h1>
+<h1>Zahlen vergleichen</h1>
 
 <section id="einstellung">
   <fieldset>
@@ -99,17 +102,16 @@ select{width:auto;min-width:16rem;background:#fff}
     <select id="vorgabe" aria-label="Vorgabe"></select>
   </fieldset>
   <fieldset>
-    <legend>Runden auf</legend>
-    <div class="arten">
-      <label><input type="checkbox" name="stelle" value="10"> Zehner</label>
-      <label><input type="checkbox" name="stelle" value="100"> Hunderter</label>
-      <label><input type="checkbox" name="stelle" value="1000"> Tausender</label>
-      <label><input type="checkbox" name="stelle" value="10000"> Zehntausender</label>
-      <label><input type="checkbox" name="stelle" value="100000"> Hunderttausender</label>
+    <legend>Zahlen</legend>
+    <div class="reihe">
+      <label>Zahlenart <select id="zahlart"><option value="nat">Natürliche Zahlen</option><option value="dez">Dezimalzahlen</option><option value="mix">Gemischt</option></select></label>
+      <label id="labelBisNat">Zahlen bis <select id="bisnat"><option value="20">20</option><option value="100">100</option><option value="1000">1000</option><option value="999999">999 999</option><option value="999999999">999 999 999</option></select></label>
+      <label id="labelStellen">Nachkommastellen bis <select id="stellen"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+      <label id="labelGanz">Ganze bis <input type="number" id="ganz" value="0" min="0" max="1000" step="1"></label>
     </div>
   </fieldset>
   <fieldset>
-    <legend>Aufgaben</legend>
+    <legend>Runden</legend>
     <div class="reihe">
       <label>Anzahl <input type="number" id="runden" value="10" min="1" max="200" step="1"></label>
     </div>
@@ -177,58 +179,146 @@ const zufall = (r, lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
 const waehle = (r, liste) => liste[zufall(r, 0, liste.length - 1)];
 const gruppiert = n => { const s = String(n); return s.length >= 5 ? s.replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f") : s; };
 
-const STELLEN = [[10, "Zehner"], [100, "Hunderter"], [1000, "Tausender"], [10000, "Zehntausender"], [100000, "Hunderttausender"]];
-const stellenName = s => STELLEN.find(x => x[0] === s)[1];
+const DTYPEN = ["Mehr Stellen, aber kleiner", "Gleich trotz Nullen", "Null nach dem Komma", "Ganze entscheiden", "Zufällig"];
+const NTYPEN = ["Gleiche Ziffern, andere Stelle", "Mehr Stellen gewinnt", "Gleicher Anfang", "Gleiche Zahl", "Zufällig"];
+const ziffern = (r, n) => { let s = ""; for (let i = 0; i < n - 1; i++) s += zufall(r, 0, 9); return s + zufall(r, 1, 9); };
+const zahl = z => z.g + "," + z.d;
+function vergleiche(x, y) {
+  if (x.g !== y.g) return x.g < y.g ? "<" : ">";
+  const k = Math.max(x.d.length, y.d.length);
+  const a = x.d.padEnd(k, "0"), b = y.d.padEnd(k, "0");
+  return a === b ? "=" : (a < b ? "<" : ">");
+}
+const rel = (a, b) => a === b ? "=" : (a < b ? "<" : ">");
+function natZahl(r, l) { let s = String(zufall(r, 1, 9)); for (let i = 1; i < l; i++) s += zufall(r, 0, 9); return s; }
+function natZufall(r, M) {
+  if (M <= 1000) return zufall(r, 1, M);
+  const L = String(M).length;
+  return Number(natZahl(r, zufall(r, Math.max(3, L - 2), L)));
+}
+function natVersuch(r, M, typ) {
+  const L = String(M).length;
+  let x, y;
+  if (typ === 0) {
+    x = natZufall(r, M); const s = String(x);
+    if (s.length < 2 || new Set(s).size < 2) return null;
+    y = Number(s.split("").sort(() => r() - 0.5).join(""));
+    if (String(y).length !== s.length || y === x || y > M) return null;
+  } else if (typ === 1) {
+    const m = M > 1000 ? zufall(r, Math.max(4, L - 2), L) : zufall(r, 2, L);
+    if (P(m - 1) > M) return null;
+    x = P(m - 1) + zufall(r, 0, Math.min(P(m - 2), M - P(m - 1)));
+    y = 9 * P(m - 2) + zufall(r, 0, P(m - 2) - 1);
+  } else if (typ === 2) {
+    x = natZufall(r, M); const s = String(x);
+    if (s.length < 2) return null;
+    const k = zufall(r, 1, Math.max(1, s.length - 2));
+    let rest = ""; for (let i = k; i < s.length; i++) rest += zufall(r, 0, 9);
+    y = Number(s.slice(0, k) + rest);
+    if (y === x || y > M || y < 1) return null;
+  } else if (typ === 3) {
+    x = natZufall(r, M); y = x;
+  } else {
+    x = natZufall(r, M); y = natZufall(r, M);
+  }
+  return [x, y];
+}
+function natPaar(r, M) {
+  let typ = waehle(r, [0, 0, 0, 1, 1, 2, 2, 3, 4, 4]), p = null;
+  for (let v = 0; v < 50 && !p; v++) p = natVersuch(r, M, typ);
+  if (!p) { typ = 4; p = natVersuch(r, M, 4); }
+  let [x, y] = p;
+  if (r() < 0.5) [x, y] = [y, x];
+  return { xs: gruppiert(x), ys: gruppiert(y), rel: rel(x, y), typ: NTYPEN[typ] };
+}
+const P = n => Math.pow(10, n);
+function dezPaar(r, md, G) {
+  const gz = () => G ? zufall(r, 0, G) : 0;
+  const typen = [];
+  if (md >= 2) typen.push(0, 0, 1, 2);
+  if (G >= 1) typen.push(3);
+  typen.push(4, 4);
+  const typ = waehle(r, typen);
+  let x, y;
+  if (typ === 0) {
+    const g = gz(), l1 = zufall(r, 1, md - 1), l2 = zufall(r, l1 + 1, md);
+    let xd; do { xd = ziffern(r, l1); } while (Number(xd[0]) < 2);
+    const obere = Number(xd) * P(l2 - l1) - 1, untere = P(l2 - 1);
+    let yv; do { yv = zufall(r, untere, obere); } while (yv % 10 === 0);
+    x = { g, d: xd }; y = { g, d: String(yv) };
+  } else if (typ === 1) {
+    const g = gz(), l = zufall(r, 1, md - 1), d = ziffern(r, l);
+    x = { g, d }; y = { g, d: d + "0".repeat(zufall(r, 1, md - l)) };
+  } else if (typ === 2) {
+    const g = gz(), a = String(zufall(r, 1, 9));
+    x = { g, d: a }; y = { g, d: "0".repeat(zufall(r, 1, md - 1)) + a };
+  } else if (typ === 3) {
+    const g1 = zufall(r, 0, G - 1), g2 = zufall(r, g1 + 1, G);
+    x = { g: g1, d: ziffern(r, md) }; y = { g: g2, d: ziffern(r, zufall(r, 1, md)) };
+  } else {
+    const g = gz();
+    x = { g, d: ziffern(r, zufall(r, 1, md)) }; y = { g, d: ziffern(r, zufall(r, 1, md)) };
+  }
+  if (r() < 0.5) [x, y] = [y, x];
+  return { xs: zahl(x), ys: zahl(y), rel: vergleiche(x, y), typ: DTYPEN[typ] };
+}
+const ARTNAME = { nat: "Natürliche Zahlen", dez: "Dezimalzahlen", mix: "Natürliche Zahlen und Dezimalzahlen gemischt" };
 const H = {
-  speicher: "htmlhelper:runden:bestenliste",
-  modus: "eingabe", inputMode: "numeric", eingabeBreite: "8ch", zeichen: "≈", rundenWort: "Aufgaben",
-  eingabeHinweis: "Bitte eine ganze Zahl eingeben.",
-  gruppenName: "Stelle", gruppen: STELLEN.map(x => x[1]),
+  speicher: "htmlhelper:zahlenvergleich:bestenliste",
+  modus: "tippen", rundenWort: "Runden",
+  tasten: [{ wert: "<", label: "<", name: "kleiner", taste: "<" }, { wert: "=", label: "=", name: "gleich", taste: "=" }, { wert: ">", label: ">", name: "größer", taste: ">" }],
+  eingabeHinweis: "",
+  gruppenName: "Aufgabentyp", gruppen: [...new Set([...NTYPEN, ...DTYPEN])],
   VORGABEN: [
-    { id: "z", name: "Auf Zehner", stellen: [10] },
-    { id: "h", name: "Auf Hunderter", stellen: [100] },
-    { id: "t", name: "Auf Tausender", stellen: [1000] },
-    { id: "zht", name: "Gemischt: Zehner, Hunderter, Tausender", stellen: [10, 100, 1000] },
-    { id: "gross", name: "Große Zahlen: Zehntausender, Hunderttausender", stellen: [10000, 100000] }
+    { id: "n20", name: "Zahlen bis 20", art: "nat", bis: 20, md: 2, ganz: 0 },
+    { id: "n100", name: "Zahlen bis 100", art: "nat", bis: 100, md: 2, ganz: 0 },
+    { id: "n1000", name: "Zahlen bis 1000", art: "nat", bis: 1000, md: 2, ganz: 0 },
+    { id: "nat6", name: "Große Zahlen bis 999 999", art: "nat", bis: 999999, md: 2, ganz: 0 },
+    { id: "nat9", name: "Große Zahlen bis 999 999 999", art: "nat", bis: 999999999, md: 2, ganz: 0 },
+    { id: "z1", name: "Zehntel unter 1", art: "dez", bis: 999999, md: 1, ganz: 0 },
+    { id: "zh", name: "Zehntel und Hundertstel unter 1", art: "dez", bis: 999999, md: 2, ganz: 0 },
+    { id: "g20", name: "Mit Ganzen bis 20", art: "dez", bis: 999999, md: 2, ganz: 20 },
+    { id: "t", name: "Bis Tausendstel unter 1", art: "dez", bis: 999999, md: 3, ganz: 0 },
+    { id: "g100", name: "Mit Ganzen bis 100, bis Tausendstel", art: "dez", bis: 999999, md: 3, ganz: 100 },
+    { id: "mix", name: "Gemischt: natürliche Zahlen und Dezimalzahlen", art: "mix", bis: 999999, md: 2, ganz: 20 }
   ],
-  setzen($, v) {
-    document.querySelectorAll("input[name=stelle]").forEach(c => { c.checked = v.stellen.includes(Number(c.value)); });
+  setzen($, v) { $("zahlart").value = v.art; $("bisnat").value = String(v.bis); $("stellen").value = String(v.md); $("ganz").value = v.ganz; },
+  sichtbarkeit($) {
+    const art = $("zahlart").value;
+    $("labelBisNat").hidden = art === "dez";
+    $("labelStellen").hidden = art === "nat";
+    $("labelGanz").hidden = art === "nat";
   },
   lesen($) {
-    const stellen = [...document.querySelectorAll("input[name=stelle]:checked")].map(c => Number(c.value));
-    if (!stellen.length) return "Bitte mindestens eine Stelle wählen.";
-    return { stellen };
+    const art = $("zahlart").value, bis = Number($("bisnat").value), md = Number($("stellen").value), ganz = Number($("ganz").value);
+    if (art !== "nat" && (!Number.isInteger(ganz) || ganz < 0 || ganz > 1000)) return "„Ganze bis“: eine ganze Zahl von 0 bis 1000.";
+    return { art, bis, md, ganz };
   },
-  ausVorgabe(v) { return { stellen: v.stellen }; },
-  schluessel(e) { return { stellen: [...e.stellen].sort((a, b) => a - b) }; },
-  beschreibung(e) { return "Auf " + [...e.stellen].sort((a, b) => a - b).map(stellenName).join(" und "); },
+  ausVorgabe(v) { return { art: v.art, bis: v.bis, md: v.md, ganz: v.ganz }; },
+  schluessel(e) {
+    const s = { art: e.art };
+    if (e.art !== "dez") s.bis = e.bis;
+    if (e.art !== "nat") { s.md = e.md; s.ganz = e.ganz; }
+    return s;
+  },
+  beschreibung(e) {
+    const t = [ARTNAME[e.art]];
+    if (e.art !== "dez") t.push(`bis ${gruppiert(e.bis)}`);
+    if (e.art !== "nat") t.push(`bis ${e.md} Nachkommastelle${e.md > 1 ? "n" : ""}` + (e.ganz ? `, Ganze bis ${e.ganz}` : ", unter 1"));
+    return t.join(", ");
+  },
   erzeuge(r, e) {
-    const s = waehle(r, e.stellen);
-    const unten = s * Math.pow(10, zufall(r, 0, 1)), oben = unten * 10 - 1;
-    let n;
-    if (r() < 0.25) {
-      const einheit = s / 10;
-      const rest = 5 * einheit + (einheit > 1 ? zufall(r, 0, einheit - 1) : 0);
-      n = zufall(r, unten / s, Math.floor((oben - rest) / s)) * s + rest;
-    } else {
-      do { n = zufall(r, unten, oben); } while (n % s === 0);
-    }
-    return { n, s, erg: Math.round(n / s) * s };
+    const nat = e.art === "nat" || (e.art === "mix" && r() < 0.5);
+    return nat ? natPaar(r, e.bis) : dezPaar(r, e.md, e.ganz);
   },
-  auftrag(t) { return "Runde auf " + stellenName(t.s) + "."; },
-  zeige(t) { return gruppiert(t.n); },
-  einheit() { return ""; },
-  text(t) { return gruppiert(t.n) + " auf " + stellenName(t.s); },
-  loesung(t) { return gruppiert(t.erg); },
-  satz(t) { return gruppiert(t.n) + " ≈ " + gruppiert(t.erg); },
-  gruppe(t) { return stellenName(t.s); },
-  soll(t) { return 1.5 + 0.6 * String(t.n).length; },
-  pruefe(t, roh) {
-    const s = roh.trim().replace(/[\s.\u202f\u00a0]/g, "");
-    if (!/^\d+$/.test(s)) return { gueltig: false };
-    const v = Number(s);
-    return { gueltig: true, richtig: v === t.erg, anzeige: gruppiert(v) };
-  }
+  auftrag() { return "Setze <, = oder > ein."; },
+  zeige(t) { return `${t.xs} <span class="fragezeichen">?</span> ${t.ys}`; },
+  text(t) { return `${t.xs} ? ${t.ys}`; },
+  loesung(t) { return t.rel; },
+  satz(t) { return `${t.xs} ${t.rel} ${t.ys}`; },
+  gruppe(t) { return t.typ; },
+  soll() { return 3; },
+  pruefe(t, roh) { return { gueltig: true, richtig: roh === t.rel, anzeige: roh }; }
 };
 
 function erzeugeSatz(e) {

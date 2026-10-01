@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Stand: 2026-10-01 · Änderung 3 -->
+<!-- Stand: 2026-10-01 · Änderung 6 -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -80,6 +80,7 @@ select{width:auto;min-width:16rem;background:#fff}
 .bruch span:last-child{padding:.08em .2em 0}
 .rueck .bruch,td .bruch{font-size:.9em;margin:0 .1em}
 .fragezeichen{display:inline-block;min-width:1.4em;text-align:center;border-bottom:3px solid var(--tinte)}
+.antwort{display:inline-flex;align-items:baseline;gap:.5rem;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -125,9 +126,8 @@ select{width:auto;min-width:16rem;background:#fff}
   <div class="kopf"><span id="fortschritt"></span><span class="uhr" id="uhr">0:00,0</span></div>
   <p class="auftrag" id="auftrag"></p>
   <div class="aufgabe">
-    <span id="term"></span><span id="zeichen"></span>
-    <input id="eingabe" type="text" inputmode="numeric" autocomplete="off" aria-label="Antwort">
-    <span id="einheit"></span>
+    <span id="term"></span>
+    <span class="antwort"><span id="zeichen"></span><input id="eingabe" type="text" inputmode="numeric" autocomplete="off" aria-label="Antwort"><span id="einheit"></span></span>
     <button id="ok" type="button">OK</button>
   </div>
   <div class="tasten" id="tasten" hidden></div>
@@ -204,12 +204,11 @@ const H = {
   gruppenName: "Nenner", gruppen: ALLE.map(k => GRUPPEN[k][0]),
   VORGABEN: [
     { id: "kern", name: "Halbe, Viertel, Fünftel, Zehntel als Dezimalzahl", gruppen: ["hv", "f", "z"], richtung: "dez" },
+    { id: "kernp", name: "Halbe, Viertel, Fünftel, Zehntel in Prozent", gruppen: ["hv", "f", "z"], richtung: "proz" },
     { id: "achtel", name: "Mit Achteln als Dezimalzahl", gruppen: ["hv", "f", "z", "a"], richtung: "dez" },
     { id: "alle", name: "Alle als Dezimalzahl", gruppen: ALLE, richtung: "dez" },
-    { id: "kernp", name: "Halbe, Viertel, Fünftel, Zehntel in Prozent", gruppen: ["hv", "f", "z"], richtung: "proz" },
     { id: "mix", name: "Alle, als Dezimalzahl und in Prozent gemischt", gruppen: ALLE, richtung: "beide" }
   ],
-  START_VORGABE: "kern",
   setzen($, v) {
     document.querySelectorAll("input[name=gruppe]").forEach(c => { c.checked = v.gruppen.includes(c.value); });
     $("richtung").value = v.richtung;
@@ -435,6 +434,22 @@ if (typeof document !== "undefined") (function () {
     $("bereich-bestenliste").hidden = ziel !== "bestenliste";
     if (ziel === "bestenliste") bestenlisteZeigen();
   }
+  const merkSchluessel = H.speicher.replace(":bestenliste", ":einstellung");
+  const merkFelder = () => [...document.querySelectorAll("#einstellung input, #einstellung select")].map(el => [el.id || el.name + ":" + el.value, el]);
+  function einstellungMerken() {
+    const z = {};
+    merkFelder().forEach(([k, el]) => { z[k] = el.type === "checkbox" ? el.checked : el.value; });
+    try { localStorage.setItem(merkSchluessel, JSON.stringify(z)); } catch (err) { }
+  }
+  function einstellungHolen() {
+    let z = null;
+    try { z = JSON.parse(localStorage.getItem(merkSchluessel)); } catch (err) { }
+    if (!z) return false;
+    merkFelder().forEach(([k, el]) => { if (k in z) { if (el.type === "checkbox") el.checked = z[k]; else el.value = z[k]; } });
+    if (![...$("vorgabe").options].some(o => o.value === $("vorgabe").value)) $("vorgabe").value = "";
+    return true;
+  }
+
   function vorgabeSetzen(id) {
     const v = H.VORGABEN.find(x => x.id === id);
     if (!v) return;
@@ -466,11 +481,14 @@ if (typeof document !== "undefined") (function () {
   }
 
   $("vorgabe").innerHTML = H.VORGABEN.map(v => `<option value="${v.id}">${v.name}</option>`).join("") + `<option value="">Eigene Einstellung</option>`;
-  $("vorgabe").value = H.START_VORGABE;
-  vorgabeSetzen(H.START_VORGABE);
+  $("vorgabe").value = H.VORGABEN[0].id;
+  vorgabeSetzen(H.VORGABEN[0].id);
+  if (einstellungHolen() && H.sichtbarkeit) H.sichtbarkeit($);
   $("vorgabe").addEventListener("change", () => vorgabeSetzen($("vorgabe").value));
   $("einstellung").addEventListener("input", ev => { if (ev.target.id !== "vorgabe" && ev.target.id !== "runden") { $("vorgabe").value = ""; if (H.sichtbarkeit) H.sichtbarkeit($); } });
   $("einstellung").addEventListener("change", ev => { if (ev.target.id !== "vorgabe" && ev.target.id !== "runden") { $("vorgabe").value = ""; if (H.sichtbarkeit) H.sichtbarkeit($); } });
+
+  ["input", "change"].forEach(t => $("einstellung").addEventListener(t, einstellungMerken));
 
   $("start").addEventListener("click", () => {
     const e = einstellungLesen();
